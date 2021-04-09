@@ -133,9 +133,21 @@ class ProductController extends Controller
      * @param \App\Models\Product $product
      * @return \Illuminate\Http\Response
      */
-    public function show($product)
+    public function show(Product $product)
     {
-
+        $parentVariant = [];
+        $pvp = $product->productVariantPrices()->first();
+        
+        if($pvp->vairant1 != null){
+            array_push($parentVariant, ['variant' => $pvp->vairant1->variantParent, 'tags' => ProductVariant::where([['product_id', $product->id], ['variant_id', $pvp->vairant1->variantParent->id]])->pluck('variant')->toArray()]);
+        }
+        if($pvp->vairant2 != null){
+            array_push($parentVariant, ['variant' => $pvp->vairant2->variantParent, 'tags' => ProductVariant::where([['product_id', $product->id], ['variant_id', $pvp->vairant2->variantParent->id]])->pluck('variant')->toArray()]);
+        }
+        if($pvp->vairant3 != null){
+            array_push($parentVariant, ['variant' => $pvp->vairant3->variantParent, 'tags' => ProductVariant::where([['product_id', $product->id], ['variant_id', $pvp->vairant3->variantParent->id]])->pluck('variant')->toArray()]);
+        }
+        return response()->json(['product'=>$product, 'parentVariant' => $parentVariant], 200);
     }
 
     /**
@@ -147,7 +159,7 @@ class ProductController extends Controller
     public function edit(Product $product)
     {
         $variants = Variant::all();
-        return view('products.edit', compact('variants'));
+        return view('products.edit', compact('variants' ,'product'));
     }
 
     /**
@@ -159,7 +171,55 @@ class ProductController extends Controller
      */
     public function update(Request $request, Product $product)
     {
-        //
+        $this->validate($request,[
+            'sku' => ['required', 'unique:products,sku,'.$product->id]
+        ]);
+        // return $request->product_variant[0]['tags'];
+        $product->update([
+            'title' => $request->title,
+            'sku' => $request->sku,
+            'description' => $request->description,
+        ]);
+        ProductVariant::where('product_id', $product->id)->delete();
+        ProductVariantPrice::where('product_id', $product->id)->delete();
+
+        foreach($request->product_variant as $pv){
+            foreach($pv['tags'] as $tag){
+                ProductVariant::create([
+                    'variant' => $tag, 
+                    'variant_id' => $pv['option'], 
+                    'product_id' => $product->id,
+                ]);
+            }
+        }
+        foreach($request->product_variant_prices as $pvp){
+            $title = explode('/',$pvp['title']);
+            $pv1 = $product->productVariants()->where('variant', $title[0])->first();
+            $pv2 = (array_key_exists(1, $title)) ? $product->productVariants()->where('variant', $title[1])->first() : null;
+            $pv3 = (array_key_exists(2, $title)) ? $product->productVariants()->where('variant', $title[2])->first() : null;
+            ProductVariantPrice::create([
+                'price' => $pvp['price'], 
+                'product_variant_one' => ($pv1) ? $pv1->id : null, 
+                'product_variant_two'=> ($pv2) ? $pv2->id : null, 
+                'product_variant_three' => ($pv3) ? $pv3->id : null, 
+                'stock' => $pvp['stock'], 
+                'product_id' => $product->id
+            ]);
+        }
+        $product = Product::find($product->id);
+        $parentVariant = [];
+        $pvp = $product->productVariantPrices()->first();
+        
+        if($pvp->vairant1 != null){
+            array_push($parentVariant, ['variant' => $pvp->vairant1->variantParent, 'tags' => ProductVariant::where([['product_id', $product->id], ['variant_id', $pvp->vairant1->variantParent->id]])->pluck('variant')->toArray()]);
+        }
+        if($pvp->vairant2 != null){
+            array_push($parentVariant, ['variant' => $pvp->vairant2->variantParent, 'tags' => ProductVariant::where([['product_id', $product->id], ['variant_id', $pvp->vairant2->variantParent->id]])->pluck('variant')->toArray()]);
+        }
+        if($pvp->vairant3 != null){
+            array_push($parentVariant, ['variant' => $pvp->vairant3->variantParent, 'tags' => ProductVariant::where([['product_id', $product->id], ['variant_id', $pvp->vairant3->variantParent->id]])->pluck('variant')->toArray()]);
+        }
+        return response()->json(['product'=>$product, 'parentVariant' => $parentVariant], 200);
     }
 
     /**

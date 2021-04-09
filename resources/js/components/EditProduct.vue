@@ -82,7 +82,7 @@
                                 </tr>
                                 </thead>
                                 <tbody>
-                                <tr v-for="variant_price in product_variant_prices" :key="variant_price.price">
+                                <tr v-for="(variant_price, index) in product_variant_prices" :key="index">
                                     <td>{{ variant_price.title }}</td>
                                     <td>
                                         <input type="text" class="form-control" v-model="variant_price.price">
@@ -118,7 +118,11 @@ export default {
         variants: {
             type: Array,
             required: true
-        }
+        },
+        product_id : {
+            required: true
+        },
+
     },
     data() {
         return {
@@ -127,13 +131,10 @@ export default {
             description: '',
             images: [],
             insert_errors: [],
-            product_variant: [
-                {
-                    option: this.variants[0].id,
-                    tags: []
-                }
-            ],
+            product_variant: [],
             product_variant_prices: [],
+            parent_variant_prices: [],
+            previous_variants:[],
             dropzoneOptions: {
                 url: '/product/image',
                 thumbnailWidth: 150,
@@ -142,8 +143,10 @@ export default {
             }
         }
     },
+    
     methods: {
         // it will push a new object into product variant
+        
         newVariant() {
             let all_variants = this.variants.map(el => el.id)
             let selected_variants = this.product_variant.map(el => el.option);
@@ -164,13 +167,31 @@ export default {
                 tags.push(item.tags);
             })
 
-            this.getCombn(tags).forEach(item => {
+            this.getCombn(tags).forEach((item, index) => {
                 this.product_variant_prices.push({
                     title: item,
-                    price: 0,
-                    stock: 0
+                    price: (this.parent_variant_prices[index]) ? this.parent_variant_prices[index].price : 0,
+                    stock: (this.parent_variant_prices[index]) ? this.parent_variant_prices[index].stock : 0
                 })
             })
+        },
+
+        updateVariant() {
+            this.product_variant = [];
+            this.previous_variants.map((el) => {
+                let tag = [];
+                el.tags.map(el => {
+                    tag.push(el);
+                });
+                this.product_variant.push({
+                    option: el.variant.id,
+                    tags: tag
+                })
+            });
+            let all_variants = this.variants.map(el => el.id)
+            let selected_variants = this.product_variant.map(el => el.id);
+            let available_variants = all_variants.filter(entry1 => !selected_variants.some(entry2 => entry1 == entry2))
+            this.checkVariant()
         },
 
         // combination algorithm
@@ -197,18 +218,15 @@ export default {
                 product_variant: this.product_variant,
                 product_variant_prices: this.product_variant_prices
             }
-            axios.post('/product', product).then(response => {
+            axios.patch('/product/' + this.product_id, product).then(response => {
                 console.log(response.data);
-                this.product_name = '';
-                this.product_sku = '';
-                this.description = '';
-                this.images = null;
-                this.product_variant = [{
-                    option: this.variants[0].id,
-                    tags: []
-                }];
-                this.product_variant_prices = [];
-                alert('Product Inserted Successfully');
+                this.product_name = response.data.product.name;
+                this.product_sku = response.data.product.sku;
+                this.description = response.data.product.description;
+                this.previous_variants = response.data.parentVariant;
+                this.parent_variant_prices = response.data.product.product_variant_prices;
+                this.updateVariant();
+                alert('Product Updated Successfully');
             }).catch(error => {
                 console.log(error);
                 this.insert_errors = error.response.data.errors.sku;
@@ -217,8 +235,18 @@ export default {
             // console.log(product);
         }
     },
-    mounted() {
-        console.log('Component mounted.')
-    }
+    mounted(){
+        axios.get('/product/' + this.product_id).then(response => {
+            console.log(response.data);
+            this.product_name = response.data.product.name;
+            this.product_sku = response.data.product.sku;
+            this.description = response.data.product.description;
+            this.previous_variants = response.data.parentVariant;
+            this.parent_variant_prices = response.data.product.product_variant_prices;
+            this.updateVariant();
+        }).catch(error => {
+            console.log(error);
+        })
+    },
 }
 </script>

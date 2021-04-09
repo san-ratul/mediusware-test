@@ -10,6 +10,8 @@ class Product extends Model
         'title', 'sku', 'description'
     ];
 
+    protected $with = ['productVariants','productVariantPrices'];
+
     public function productVariants()
     {
         return $this->hasMany(ProductVariant::class, 'product_id');

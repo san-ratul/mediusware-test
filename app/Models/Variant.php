@@ -10,6 +10,8 @@ class Variant extends Model
         'title', 'description'
     ];
 
+    // protected $with = ['variations'];
+
     public function variations()
     {
         return $this->hasMany(ProductVariant::class, 'variant_id')->groupBy('variant');

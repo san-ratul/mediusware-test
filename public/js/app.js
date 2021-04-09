@@ -2012,6 +2012,15 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 
 
@@ -2032,6 +2041,7 @@ __webpack_require__.r(__webpack_exports__);
       product_sku: '',
       description: '',
       images: [],
+      insert_errors: [],
       product_variant: [{
         option: this.variants[0].id,
         tags: []
@@ -2100,6 +2110,9 @@ __webpack_require__.r(__webpack_exports__);
     },
     // store product into database
     saveProduct: function saveProduct() {
+      var _this2 = this;
+
+      this.insert_errors = [];
       var product = {
         title: this.product_name,
         sku: this.product_sku,
@@ -2110,10 +2123,17 @@ __webpack_require__.r(__webpack_exports__);
       };
       axios.post('/product', product).then(function (response) {
         console.log(response.data);
+        _this2.product_name = '';
+        _this2.product_sku = '';
+        _this2.description = '';
+        _this2.images = null;
+        _this2.product_variant = [];
+        _this2.product_variant_prices = [];
+        alert('Product Inserted Successfully');
       })["catch"](function (error) {
         console.log(error);
-      });
-      console.log(product);
+        _this2.insert_errors = error.response.data.errors.sku;
+      }); // console.log(product);
     }
   },
   mounted: function mounted() {
@@ -50474,6 +50494,26 @@ var render = function() {
   var _c = _vm._self._c || _h
   return _c("section", [
     _c("div", { staticClass: "row" }, [
+      _vm.insert_errors.length > 0
+        ? _c("div", { staticClass: "col-12" }, [
+            _c("div", { staticClass: "alert alert-danger" }, [
+              _c(
+                "ul",
+                _vm._l(_vm.insert_errors, function(error) {
+                  return _c("li", [
+                    _vm._v(
+                      "\n                        " +
+                        _vm._s(error) +
+                        "\n                    "
+                    )
+                  ])
+                }),
+                0
+              )
+            ])
+          ])
+        : _vm._e(),
+      _vm._v(" "),
       _c("div", { staticClass: "col-md-6" }, [
         _c("div", { staticClass: "card shadow mb-4" }, [
           _c("div", { staticClass: "card-body" }, [

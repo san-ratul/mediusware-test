@@ -1,6 +1,15 @@
 <template>
     <section>
         <div class="row">
+            <div class="col-12" v-if="insert_errors.length > 0">
+                <div class="alert alert-danger">
+                    <ul>
+                        <li v-for="error in insert_errors">
+                            {{error}}
+                        </li>
+                    </ul>
+                </div>
+            </div>
             <div class="col-md-6">
                 <div class="card shadow mb-4">
                     <div class="card-body">
@@ -118,6 +127,7 @@ export default {
             product_sku: '',
             description: '',
             images: [],
+            insert_errors: [],
             product_variant: [
                 {
                     option: this.variants[0].id,
@@ -179,6 +189,7 @@ export default {
 
         // store product into database
         saveProduct() {
+            this.insert_errors = [];
             let product = {
                 title: this.product_name,
                 sku: this.product_sku,
@@ -187,18 +198,22 @@ export default {
                 product_variant: this.product_variant,
                 product_variant_prices: this.product_variant_prices
             }
-
-
             axios.post('/product', product).then(response => {
                 console.log(response.data);
+                this.product_name = '';
+                this.product_sku = '';
+                this.description = '';
+                this.images = null;
+                this.product_variant = [];
+                this.product_variant_prices = [];
+                alert('Product Inserted Successfully');
             }).catch(error => {
                 console.log(error);
+                this.insert_errors = error.response.data.errors.sku;
             })
 
-            console.log(product);
+            // console.log(product);
         }
-
-
     },
     mounted() {
         console.log('Component mounted.')

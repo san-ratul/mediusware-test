@@ -16,6 +16,11 @@
 
     <!-- Styles -->
     <link href="{{ asset('css/app.css') }}" rel="stylesheet">
+    <style>
+        .select2.select2-container.select2-container--bootstrap4{
+            min-width: 150px !important;
+        }
+    </style>
 </head>
 {{--<body id="page-top">--}}
 
